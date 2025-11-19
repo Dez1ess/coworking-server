@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Node/Express environment
+    "module": "CommonJS",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "lib": ["ESNext"],
+    "types": ["node"],
+
+    // Compatibility & convenience
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    // Type safety
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+  }
+}
