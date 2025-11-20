@@ -22,7 +22,6 @@ router.post("/", authMiddleware, async (req: any, res) => {
       payment_method,
     } = req.body;
 
-    // Валідація payment_method
     if (!["card", "cash", "transfer"].includes(payment_method)) {
       payment_method = "card";
     }
@@ -53,10 +52,8 @@ router.post("/", authMiddleware, async (req: any, res) => {
         .json({ message: "Workspace is not available for selected dates" });
     }
 
-    // Починаємо транзакцію
     await client.query("BEGIN");
 
-    // 1. Створюємо бронювання
     const bookingResult = await client.query(
       `INSERT INTO bookings
        (user_id, workspace_id, workspace_number, tariff_id, start_time, end_time, price)
@@ -75,14 +72,12 @@ router.post("/", authMiddleware, async (req: any, res) => {
 
     const booking_id = bookingResult.rows[0].booking_id;
 
-    // 2. Автоматично створюємо платіж
     await client.query(
       `INSERT INTO payments (booking_id, amount, payment_method)
        VALUES ($1, $2, $3)`,
       [booking_id, price, payment_method]
     );
 
-    // Завершуємо транзакцію
     await client.query("COMMIT");
 
     res.json(bookingResult.rows[0]);
@@ -104,11 +99,12 @@ router.get("/", authMiddleware, async (req: any, res) => {
 
     const result = await pool.query(
       `SELECT booking_id, workspace_id, workspace_number, start_time, end_time, price, cancelled
-    FROM bookings
-    WHERE user_id = $1
-    ORDER BY start_time DESC`,
+       FROM bookings
+       WHERE user_id = $1
+       ORDER BY start_time DESC`,
       [user_id]
     );
+
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -119,7 +115,6 @@ router.get("/", authMiddleware, async (req: any, res) => {
 /* ============================
    LIST RECENT BOOKINGS
 ============================ */
-
 router.get("/recent", authMiddleware, async (req: any, res) => {
   try {
     const user_id = req.user?.id;
@@ -141,7 +136,7 @@ router.get("/recent", authMiddleware, async (req: any, res) => {
 });
 
 /* ============================
-   CANCEL BOOKING
+   CANCEL BOOKING & REMOVE PAYMENT
 ============================ */
 router.patch("/cancel/:id", authMiddleware, async (req: any, res) => {
   const client = await pool.connect();
@@ -150,7 +145,6 @@ router.patch("/cancel/:id", authMiddleware, async (req: any, res) => {
     const user_id = req.user?.id;
     const booking_id = req.params.id;
 
-    // Отримуємо інформацію про бронювання
     const bookingQuery = await client.query(
       `SELECT workspace_id FROM bookings 
        WHERE booking_id = $1 AND user_id = $2`,
@@ -166,7 +160,7 @@ router.patch("/cancel/:id", authMiddleware, async (req: any, res) => {
 
     await client.query("BEGIN");
 
-    // Скасовуємо бронювання
+    // Cancel booking
     const result = await client.query(
       `UPDATE bookings 
        SET cancelled = TRUE
@@ -175,9 +169,14 @@ router.patch("/cancel/:id", authMiddleware, async (req: any, res) => {
       [booking_id, user_id]
     );
 
-    // Повертаємо статус workspace на "available"
+    // Delete payment associated with booking
+    await client.query(`DELETE FROM payments WHERE booking_id = $1`, [
+      booking_id,
+    ]);
+
+    // Update workspace status
     await client.query(
-      "UPDATE workspaces SET status = $1 WHERE workspace_id = $2",
+      `UPDATE workspaces SET status = $1 WHERE workspace_id = $2`,
       ["available", workspace_id]
     );
 
