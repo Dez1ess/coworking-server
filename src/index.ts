@@ -9,6 +9,7 @@ import tariffsRoutes from "./routes/tariffs";
 import bookingsRoutes from "./routes/bookings";
 import paymentsRoutes from "./routes/payments";
 import reviewsRoutes from "./routes/reviews";
+import usersRoutes from "./routes/users";
 
 dotenv.config();
 const app = express();
@@ -21,5 +22,6 @@ app.use("/api/tariffs", tariffsRoutes);
 app.use("/api/bookings", authMiddleware, bookingsRoutes);
 app.use("/api/payments", authMiddleware, paymentsRoutes);
 app.use("/api/reviews", authMiddleware, reviewsRoutes);
+app.use("/api/users", authMiddleware, usersRoutes);
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.listen(5000, () => console.log(`Server running on ${process.env.DATABASE_URL || "http://localhost:5000"}`));
