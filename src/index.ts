@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { authMiddleware } from "./middleware/authMiddleware";
+import { adminMiddleware } from "./middleware/adminMiddleware";
 
 import authRoutes from "./routes/auth";
 import workspacesRoutes from "./routes/workspaces";
@@ -10,6 +11,9 @@ import bookingsRoutes from "./routes/bookings";
 import paymentsRoutes from "./routes/payments";
 import reviewsRoutes from "./routes/reviews";
 import usersRoutes from "./routes/users";
+
+// Admin Routes
+import adminWorkspacesRoutes from "./routes/admin/workspaces";
 
 dotenv.config();
 const app = express();
@@ -22,6 +26,17 @@ app.use("/api/tariffs", tariffsRoutes);
 app.use("/api/bookings", authMiddleware, bookingsRoutes);
 app.use("/api/payments", authMiddleware, paymentsRoutes);
 app.use("/api/reviews", authMiddleware, reviewsRoutes);
-app.use("/api/users", authMiddleware, usersRoutes);
 
-app.listen(5000, () => console.log(`Server running on ${process.env.DATABASE_URL || "http://localhost:5000"}`));
+app.use("/api/users", authMiddleware, adminMiddleware, usersRoutes);
+app.use(
+  "/api/admin/workspaces",
+  authMiddleware,
+  adminMiddleware,
+  adminWorkspacesRoutes,
+);
+
+app.listen(5000, () =>
+  console.log(
+    `Server running on ${process.env.DATABASE_URL || "http://localhost:5000"}`,
+  ),
+);

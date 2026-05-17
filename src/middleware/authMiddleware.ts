@@ -2,13 +2,16 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 
 export interface AuthRequest extends Request {
-  user?: { id: number };
+  user?: {
+    id: number;
+    role: string;
+  };
 }
 
 export const authMiddleware = (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
 
@@ -25,14 +28,17 @@ export const authMiddleware = (
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET as string
+      process.env.JWT_SECRET as string,
     ) as unknown as JwtPayload;
 
     if (!decoded || typeof decoded !== "object" || !decoded.id) {
       return res.status(401).json({ message: "Invalid token payload" });
     }
 
-    req.user = { id: decoded.id };
+    req.user = {
+      id: decoded.id,
+      role: decoded.role,
+    };
 
     next();
   } catch (error) {
