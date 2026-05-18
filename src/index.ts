@@ -15,6 +15,7 @@ import usersRoutes from "./routes/users";
 // Admin Routes
 import adminWorkspacesRoutes from "./routes/admin/workspaces";
 import adminBookingsRoutes from "./routes/admin/bookings";
+import adminReviewsRoutes from "./routes/admin/reviews";
 
 dotenv.config();
 const app = express();
@@ -40,6 +41,12 @@ app.use(
   authMiddleware,
   adminMiddleware,
   adminBookingsRoutes,
+);
+app.use(
+  "/api/admin/reviews",
+  authMiddleware,
+  adminMiddleware,
+  adminReviewsRoutes,
 );
 
 app.listen(5000, () =>

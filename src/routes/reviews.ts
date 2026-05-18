@@ -10,13 +10,39 @@ router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
     const user_id = req.user!.id;
 
     const result = await pool.query(
-      `SELECT r.review_id, r.review_date, r.review_text, r.rating, r.user_id, 
-              u.first_name as username
-       FROM reviews r
-       JOIN users u ON r.user_id = u.user_id
-       WHERE r.user_id = $1
-       ORDER BY r.review_date DESC`,
-      [user_id]
+      `
+    SELECT 
+      r.review_id,
+      r.review_date,
+      r.review_text,
+      r.rating,
+      r.user_id,
+      u.first_name AS username,
+
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'comment_id', c.comment_id,
+            'comment_text', c.comment_text,
+            'created_at', c.created_at,
+            'admin_name', a.first_name
+          )
+        ) FILTER (WHERE c.comment_id IS NOT NULL),
+        '[]'
+      ) AS comments
+
+    FROM reviews r
+    JOIN users u ON r.user_id = u.user_id
+
+    LEFT JOIN review_comments c ON c.review_id = r.review_id
+    LEFT JOIN users a ON a.user_id = c.admin_id
+
+    WHERE r.user_id = $1
+
+    GROUP BY r.review_id, u.first_name
+    ORDER BY r.review_date DESC
+    `,
+      [user_id],
     );
 
     res.json(result.rows);
@@ -44,13 +70,13 @@ router.post("/", authMiddleware, async (req: AuthRequest, res: Response) => {
       `INSERT INTO reviews (user_id, review_text, rating)
        VALUES ($1, $2, $3)
        RETURNING review_id, review_date, review_text, rating, user_id`,
-      [user_id, review_text || null, rating]
+      [user_id, review_text || null, rating],
     );
 
     // Get user name from users table
     const userResult = await pool.query(
       "SELECT first_name, last_name FROM users WHERE user_id = $1",
-      [user_id]
+      [user_id],
     );
 
     const username = userResult.rows[0]
@@ -82,7 +108,7 @@ router.put(
 
       const reviewCheck = await pool.query(
         "SELECT user_id FROM reviews WHERE review_id = $1",
-        [reviewId]
+        [reviewId],
       );
 
       if (reviewCheck.rows.length === 0) {
@@ -101,13 +127,13 @@ router.put(
            rating = COALESCE($2, rating)
        WHERE review_id = $3
        RETURNING review_id, review_date, review_text, rating, user_id`,
-        [review_text || null, rating || null, reviewId]
+        [review_text || null, rating || null, reviewId],
       );
 
       // Get user name from users table
       const userResult = await pool.query(
         "SELECT first_name, last_name FROM users WHERE user_id = $1",
-        [user_id]
+        [user_id],
       );
 
       const username = userResult.rows[0]
@@ -119,7 +145,7 @@ router.put(
       console.error("Error updating review:", error);
       res.status(500).json({ error: "Failed to update review" });
     }
-  }
+  },
 );
 
 // Delete a review
@@ -133,7 +159,7 @@ router.delete(
 
       const reviewCheck = await pool.query(
         "SELECT user_id FROM reviews WHERE review_id = $1",
-        [reviewId]
+        [reviewId],
       );
 
       if (reviewCheck.rows.length === 0) {
@@ -152,7 +178,7 @@ router.delete(
       console.error("Error deleting review:", error);
       res.status(500).json({ error: "Failed to delete review" });
     }
-  }
+  },
 );
 
 export default router;
