@@ -16,6 +16,7 @@ import usersRoutes from "./routes/users";
 import adminWorkspacesRoutes from "./routes/admin/workspaces";
 import adminBookingsRoutes from "./routes/admin/bookings";
 import adminReviewsRoutes from "./routes/admin/reviews";
+import adminTariffsRoutes from "./routes/admin/tariffs";
 
 dotenv.config();
 const app = express();
@@ -47,6 +48,12 @@ app.use(
   authMiddleware,
   adminMiddleware,
   adminReviewsRoutes,
+);
+app.use(
+  "/api/admin/tariffs",
+  authMiddleware,
+  adminMiddleware,
+  adminTariffsRoutes,
 );
 
 app.listen(5000, () =>
