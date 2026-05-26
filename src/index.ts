@@ -19,11 +19,17 @@ import adminReviewsRoutes from "./routes/admin/reviews";
 import adminTariffsRoutes from "./routes/admin/tariffs";
 import adminDashboardRoutes from "./routes/admin/dashboard";
 
+import stipeRoutes from "./routes/stripe.routes";
+
 dotenv.config();
 const app = express();
 
 app.use(cors());
+
+app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
+
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspacesRoutes);
 app.use("/api/tariffs", tariffsRoutes);
@@ -63,8 +69,6 @@ app.use(
   adminDashboardRoutes,
 );
 
-app.listen(5000, () =>
-  console.log(
-    `Server running on ${process.env.DATABASE_URL || "http://localhost:5000"}`,
-  ),
-);
+app.use("/api/stripe", stipeRoutes);
+
+app.listen(5000, () => console.log("Server running on http://localhost:5000"));
